@@ -14,7 +14,6 @@ body {
 }
 
 h1 {
-  font-size: 2rem;
   margin-bottom: 20px;
 }
 
@@ -26,13 +25,9 @@ input, select, button {
 }
 
 button {
-  cursor: pointer;
   background: #334155;
   color: white;
-}
-
-button:hover {
-  background: #475569;
+  cursor: pointer;
 }
 
 pre {
@@ -55,7 +50,7 @@ pre {
 <input type="file" id="imageInput"><br>
 
 <label>Resolución:</label>
-<input type="range" min="50" max="300" value="120" id="scale"><br>
+<input type="range" min="50" max="250" value="120" id="scale"><br>
 
 <label>Estilo:</label>
 <select id="charset">
@@ -70,10 +65,12 @@ pre {
 <pre id="output"></pre>
 
 <script>
-const input = document.getElementById('imageInput');
-const output = document.getElementById('output');
-const scale = document.getElementById('scale');
-const charsetSelect = document.getElementById('charset');
+const input = document.getElementById("imageInput");
+const output = document.getElementById("output");
+const scale = document.getElementById("scale");
+const charset = document.getElementById("charset");
+
+let lastAscii = "";
 
 const charSets = {
   simple: "@%#*+=-:. ",
@@ -81,19 +78,19 @@ const charSets = {
   detailed: "@#W$9876543210?!abc;:+=-,._ "
 };
 
-let lastAscii = "";
-
-input.addEventListener('change', (e) => {
+input.addEventListener("change", (e) => {
   const file = e.target.files[0];
+  if (!file) return;
+
   const img = new Image();
   img.src = URL.createObjectURL(file);
 
   img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
 
     const width = parseInt(scale.value);
-    const height = (img.height / img.width) * width;
+    const height = Math.floor((img.height / img.width) * width);
 
     canvas.width = width;
     canvas.height = height;
@@ -103,11 +100,16 @@ input.addEventListener('change', (e) => {
     const data = ctx.getImageData(0, 0, width, height).data;
 
     let ascii = "";
-    const chars = charSets[charsetSelect.value];
+    const chars = charSets[charset.value];
 
     for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      const avg = (r + g + b) / 3;
       const charIndex = Math.floor((avg / 255) * (chars.length - 1));
+
       ascii += chars[charIndex];
 
       if ((i / 4 + 1) % width === 0) ascii += "\n";
@@ -116,72 +118,16 @@ input.addEventListener('change', (e) => {
     output.textContent = ascii;
     lastAscii = ascii;
   };
-});<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Image to ASCII</title>
-</head>
-<body>
-
-<h1>Image to ASCII</h1>
-
-<input type="file" id="imageInput">
-<pre id="output"></pre>
-
-<script>
-const input = document.getElementById('imageInput');
-const output = document.getElementById('output');
-
-const chars = "@%#*+=-:. ";
-
-input.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  const img = new Image();
-  img.src = URL.createObjectURL(file);
-
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    const width = 100;
-    const height = (img.height / img.width) * width;
-
-    canvas.width = width;
-    canvas.height = height;
-
-    ctx.drawImage(img, 0, 0, width, height);
-
-    const data = ctx.getImageData(0, 0, width, height).data;
-
-    let ascii = "";
-
-    for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-      const charIndex = Math.floor((avg / 255) * (chars.length - 1));
-      ascii += chars[charIndex];
-
-      if ((i / 4) % width === 0) ascii += "\n";
-    }
-
-    output.textContent = ascii;
-  };
 });
-</script>
 
-</body>
-</html>
-
-// Copiar
-document.getElementById('copyBtn').onclick = () => {
-  navigator.clipboard.writeText(lastAscii);
+document.getElementById("copyBtn").onclick = () => {
+  navigator.clipboard.writeText(lastAscii || "");
   alert("Copiado!");
 };
 
-// Descargar
-document.getElementById('downloadBtn').onclick = () => {
-  const blob = new Blob([lastAscii], { type: "text/plain" });
-  const a = document.createElement('a');
+document.getElementById("downloadBtn").onclick = () => {
+  const blob = new Blob([lastAscii || ""], { type: "text/plain" });
+  const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "ascii.txt";
   a.click();
