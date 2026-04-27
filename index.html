@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Image to ASCII</title>
+<title>Image to ASCII (Colored)</title>
 
 <style>
 body {
   background: #0f172a;
-  color: #e2e8f0;
+  color: white;
   font-family: monospace;
   text-align: center;
   padding: 20px;
@@ -17,21 +17,9 @@ h1 {
   margin-bottom: 20px;
 }
 
-input, select, button {
+input, select {
   margin: 10px;
   padding: 8px;
-  border-radius: 6px;
-  border: none;
-}
-
-button {
-  background: #334155;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #475569;
 }
 
 pre {
@@ -49,23 +37,19 @@ pre {
 
 <body>
 
-<h1>Image to ASCII</h1>
+<h1>Image to Colored ASCII</h1>
 
 <input type="file" id="imageInput"><br>
 
-<label>Resolución:</label>
+<label>Resolution:</label>
 <input type="range" min="50" max="250" value="120" id="scale"><br>
 
-<label>Estilo:</label>
+<label>Style:</label>
 <select id="charset">
   <option value="simple">Simple</option>
   <option value="blocks">Blocks</option>
   <option value="detailed">Detailed</option>
 </select><br>
-
-<button id="makeBtn">🔥 Make it!</button>
-<button id="copyBtn">Copiar ASCII</button>
-<button id="downloadBtn">Descargar .txt</button>
 
 <pre id="output"></pre>
 
@@ -74,10 +58,8 @@ const input = document.getElementById("imageInput");
 const output = document.getElementById("output");
 const scale = document.getElementById("scale");
 const charset = document.getElementById("charset");
-const makeBtn = document.getElementById("makeBtn");
 
 let currentImage = null;
-let lastAscii = "";
 
 const charSets = {
   simple: "@%#*+=-:. ",
@@ -85,22 +67,7 @@ const charSets = {
   detailed: "@#W$9876543210?!abc;:+=-,._ "
 };
 
-// Guardar imagen cuando se sube
-input.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const img = new Image();
-  img.src = URL.createObjectURL(file);
-
-  img.onload = () => {
-    currentImage = img;
-    output.textContent = "Image loaded. Press Make it!";
-  };
-});
-
-// Función principal
-function generateASCII() {
+function generate() {
   if (!currentImage) return;
 
   const canvas = document.createElement("canvas");
@@ -115,9 +82,9 @@ function generateASCII() {
   ctx.drawImage(currentImage, 0, 0, width, height);
 
   const data = ctx.getImageData(0, 0, width, height).data;
-
-  let ascii = "";
   const chars = charSets[charset.value];
+
+  let html = "";
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
@@ -126,44 +93,31 @@ function generateASCII() {
 
     const avg = (r + g + b) / 3;
     const charIndex = Math.floor((avg / 255) * (chars.length - 1));
+    const char = chars[charIndex];
 
-    ascii += chars[charIndex];
+    html += `<span style="color:rgb(${r},${g},${b})">${char}</span>`;
 
-    if ((i / 4 + 1) % width === 0) ascii += "\n";
+    if ((i / 4 + 1) % width === 0) html += "<br>";
   }
 
-  output.textContent = ascii;
-  lastAscii = ascii;
+  output.innerHTML = html;
 }
 
-// BOTÓN PRINCIPAL
-makeBtn.onclick = () => {
-  generateASCII();
-};
+input.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-// Re-generar automáticamente cuando cambias settings
-scale.oninput = () => {
-  if (currentImage) generateASCII();
-};
+  const img = new Image();
+  img.src = URL.createObjectURL(file);
 
-charset.onchange = () => {
-  if (currentImage) generateASCII();
-};
+  img.onload = () => {
+    currentImage = img;
+    generate();
+  };
+});
 
-// Copiar
-document.getElementById("copyBtn").onclick = () => {
-  navigator.clipboard.writeText(lastAscii || "");
-  alert("Copiado!");
-};
-
-// Descargar
-document.getElementById("downloadBtn").onclick = () => {
-  const blob = new Blob([lastAscii || ""], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "ascii.txt";
-  a.click();
-};
+scale.oninput = generate;
+charset.onchange = generate;
 </script>
 
 </body>
